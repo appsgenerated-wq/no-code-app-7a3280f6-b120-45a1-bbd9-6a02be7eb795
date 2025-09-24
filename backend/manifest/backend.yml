@@ -1,0 +1,87 @@
+name: ConstructFlow
+description: A collaborative platform for managing construction projects, tasks, and daily progress.
+
+features:
+  authentication:
+    user_entity: User
+    jwt_secret: env(JWT_SECRET)
+  file_upload:
+    provider: local # For production, switch to s3_storage
+
+entities:
+  User:
+    properties:
+      name: string(required=true)
+      email: string(unique=true, required=true)
+      password: password
+      role:
+        type: enum
+        values: [Manager, Worker]
+        default: Worker
+        required: true
+    access_policies:
+      - role: Manager
+        permissions: [create, read, update, delete]
+      - role: Worker
+        permissions: [read]
+
+  Project:
+    properties:
+      name: string(required=true)
+      location: string(required=true)
+      startDate: date
+      endDate: date
+      status:
+        type: enum
+        values: [Planning, InProgress, Completed, OnHold]
+        default: Planning
+    relationships:
+      - type: belongsTo
+        entity: User
+        foreignKey: managerId
+      - type: hasMany
+        entity: Task
+      - type: hasMany
+        entity: DailyLog
+    access_policies:
+      - role: Manager
+        permissions: [create, read, update, delete]
+      - role: Worker
+        permissions: [read]
+
+  Task:
+    properties:
+      title: string(required=true)
+      description: string
+      dueDate: date
+      status:
+        type: enum
+        values: [ToDo, InProgress, Done]
+        default: ToDo
+    relationships:
+      - type: belongsTo
+        entity: Project
+        foreignKey: projectId
+      - type: belongsTo
+        entity: User
+        foreignKey: assigneeId
+    access_policies:
+      - role: Manager
+        permissions: [create, read, update, delete]
+      - role: Worker
+        permissions: [read, update]
+
+  DailyLog:
+    properties:
+      logDate: date(required=true)
+      notes: string(required=true)
+      photoUrl: file
+    relationships:
+      - type: belongsTo
+        entity: Project
+        foreignKey: projectId
+    access_policies:
+      - role: Manager
+        permissions: [create, read, update, delete]
+      - role: Worker
+        permissions: [create, read]
